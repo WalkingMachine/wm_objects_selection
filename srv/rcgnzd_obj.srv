@@ -1,0 +1,4 @@
+object_recognition_msgs/RecognizedObjectArray objectarray
+string filter
+---
+object_recognition_msgs/RecognizedObject slct_obj
