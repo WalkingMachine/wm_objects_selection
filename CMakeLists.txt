@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   geometry_msgs
   object_recognition_msgs
+  object_recognition_core
 )
 ## System dependencies are found with CMake's conventions
 #find_package(Boost REQUIRED COMPONENTS 
