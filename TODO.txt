@@ -1,0 +1,5 @@
+-Find way to publish pcl of object
+-Test with haf_grasping
+-Add more objects in db
+-Debug tabletop
+-If energy, convert capture for kinect2
