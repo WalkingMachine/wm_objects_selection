@@ -1,4 +1,5 @@
 object_recognition_msgs/RecognizedObjectArray objectarray
+sensor_msgs/PointCloud2 pcl_ref
 string filter
 ---
-object_recognition_msgs/RecognizedObject slct_obj
+geometry_msgs/PoseWithCovarianceStamped SlctObjectPose

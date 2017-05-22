@@ -16,8 +16,6 @@ from sensor_msgs.msg import PointCloud2
 def handle_slt_obj(req):
     objects_info_list = []
     position = 0
-    pub_pcl = rospy.Publisher("/haf_grasping/depth_registered/single_cloud/points_in_lcs", PointCloud2,
-                              queue_size=100)
     print "Request for ", req.filter, "registered"
     # Construit la liste des info d'objets détectés
     for i in req.objectarray.objects:
@@ -26,20 +24,14 @@ def handle_slt_obj(req):
     # Parcours la liste d'informations pour trouver l'objet demandé
     for i in objects_info_list:
         if i.name == req.filter:
-            print "Object found: The object with id",req.objectarray.objects[position].type.key, "is :",i.name
-            print i.ground_truth_point_cloud
-            pub_pcl.publish(i.ground_truth_point_cloud)
+            print "Object found: The object with id",req.objectarray.objects[position].type.key, "is :",i.name, "\n\rat position\r\n", req.objectarray.objects[position].pose.pose.pose.position
             break
         else:
             rospy.logout("Object not found, try again")
         position = position +1
-
-        # Create topic for publishing of grasping pcl
-
-
     rospy.logout("Service select_object_server waiting")
 
-    return  req.objectarray.objects[0]
+    return req.objectarray.objects[0].pose
 
 
 def slct_obj_srv():
@@ -48,6 +40,7 @@ def slct_obj_srv():
     s = rospy.Service('slct_obj', rcgnzd_obj , handle_slt_obj)
     rospy.logout("Service select_object_server waiting")
     os.system("rosrun object_recognition_ros object_information_server")
+    rospy.logout("InfoServer called")
     rospy.spin()
 
 def client_info(type):
