@@ -16,7 +16,8 @@ from sensor_msgs.msg import PointCloud2
 def handle_slt_obj(req):
     objects_info_list = []
     position = 0
-    print "Request for ", req.filter, "registered"
+    rospy.logdebug("Request for ", req.filter, "registered")
+    rospy.logout('Retrieving object information')
     # Construit la liste des info d'objets détectés
     for i in req.objectarray.objects:
         objects_info_list.append(client_info(i.type))
@@ -24,35 +25,32 @@ def handle_slt_obj(req):
     # Parcours la liste d'informations pour trouver l'objet demandé
     for i in objects_info_list:
         if i.name == req.filter:
-            print "Object found: The object with id",req.objectarray.objects[position].type.key, "is :",i.name, "\n\rat position\r\n", req.objectarray.objects[position].pose.pose.pose.position
-            break
+            rospy.logdebug('Object found: The object with id'+ str(req.objectarray.objects[position].type.key)+ 'is :'+ str(i.name)+ '\n\rat position\r\n'+ str(req.objectarray.objects[position].pose.pose.pose.position))
+            rospy.logout("Service select_object_server waiting")
+            return req.objectarray.objects[position].pose
         else:
-            rospy.logout("Object not found, try again")
-        position = position +1
+            position = position + 1
+    rospy.logout("Object not found")
     rospy.logout("Service select_object_server waiting")
-
-    return req.objectarray.objects[0].pose
 
 
 def slct_obj_srv():
     rospy.init_node('select_object_server')
     # Create Service for object info retrieving
-    s = rospy.Service('slct_obj', rcgnzd_obj , handle_slt_obj)
+    s = rospy.Service('slct_obj', RecognizeObject, handle_slt_obj)
     rospy.logout("Service select_object_server waiting")
     os.system("rosrun object_recognition_ros object_information_server")
-    rospy.logout("InfoServer called")
     rospy.spin()
 
 def client_info(type):
     rospy.wait_for_service('get_object_info')
-    print "Retrieving object info"
     try:
         h_obj_info = rospy.ServiceProxy('get_object_info', GetObjectInformation)
         info = h_obj_info(type)
         return info.information
 
     except rospy.ServiceException, e:
-        print "Service get_object_info failed: %s" % e
+        rospy.logerr("Service get_object_info failed: %s" +str(e))
 
 
 if __name__ == "__main__":
