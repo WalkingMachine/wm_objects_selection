@@ -1,6 +1,6 @@
 <!-- This is the launch file -->
 <launch>
-	<node name="select_object_server" pkg="wm_object_selection" type="wm_obj_slct_srv.py"></node>
-	<node name="fetch_objects_array_and_name" pkg="wm_object_selection" type="wm_obj_slct_client.py" output="screen">
+	<node name="select_object_server" pkg="wm_objects_selector" type="wm_obj_slct_server.py"></node>
+	<node name="fetch_objects_array_and_name" pkg="wm_objects_selector" type="wm_obj_slct_client.py" output="screen">
 	</node>
 </launch>

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>wm_object_selection</name>
+  <name>wm_objects_selector</name>
   <version>0.0.0</version>
   <description>The wm_object_selection package</description>
 

@@ -5,8 +5,10 @@ import sys
 import object_recognition_msgs
 import object_recognition_core
 import object_recognition_ros
+from cv_bridge import *
+import cv2
 from std_msgs.msg import String
-from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import PointCloud2, Image
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from object_recognition_msgs.msg import *
 from wm_object_selection.srv import *
@@ -22,8 +24,8 @@ class SelectObjectClient():
 
         # Retrieve name of object to filter on right topic
         rospy.logout("Wait for requested object name")
-        self.ObjectFilterMessage = rospy.wait_for_message("/WMObjectProcessor/ObjectFilterSelection", String, 30)
-        self.ObjectFilter = self.ObjectFilterMessage.data
+        self.object_filter_message = rospy.wait_for_message("/WMObjectProcessor/ObjectFilterSelection", String, 30)
+        self.object_filter = self.object_filter_message.data
         try:
             rospy.logout("Object to find received")
         except rospy.ROSException, e:
@@ -34,6 +36,14 @@ class SelectObjectClient():
         self.pcl_ref = rospy.wait_for_message("/real_icpin_ref", PointCloud2, 30)
         try:
             rospy.logout("Objects Point clouds received")
+        except rospy.ROSException, e:
+            rospy.logout("Time out")
+
+        # Retrieve image to add bounding boxes to it
+        rospy.logout("Wait for image")
+        self.image_msg = rospy.wait_for_message("/camera/rgb/image_rect_color", Image, 30) # for kinect2 : '/kinect2/qhd/image_color_rect' for xtion : '/camera/rgb/image_rect_color'
+        try:
+            rospy.logout("Image received")
         except rospy.ROSException, e:
             rospy.logout("Time out")
 
@@ -52,12 +62,12 @@ class SelectObjectClient():
         self.PubObjectPose = rospy.Publisher("/WMObjectProcessor/selected_object_pose", PoseWithCovarianceStamped,
                                              queue_size =100)
     # Method to call the server once all required information is received
-    def client(self, array, pcl_ref, obj_filter):
+    def client(self, array, pcl_ref, obj_filter, image):
         rospy.logout("Requesting position of " + obj_filter)
         rospy.wait_for_service('slct_obj')
         try:
             self.inputs_srv = rospy.ServiceProxy('slct_obj', RecognizeObject)
-            self.slct_obj = self.inputs_srv(array, pcl_ref, obj_filter)
+            self.slct_obj = self.inputs_srv(array, pcl_ref, obj_filter, image)
             rospy.logout('Service found the requested object at\n\r ' + str(self.slct_obj.selected_object_pose.pose.pose))
             self.PubObjectPose.publish(self.slct_obj.selected_object_pose)
             self.pub_pcl.publish(self.pcl_ref)
@@ -70,8 +80,14 @@ class SelectObjectClient():
 
 
 
+
+
+
 if __name__ == "__main__":
     SelectObjectClient = SelectObjectClient()
-    SelectObjectClient.client(SelectObjectClient.arraytopic, SelectObjectClient.pcl_ref, SelectObjectClient.ObjectFilter)
+    SelectObjectClient.client(SelectObjectClient.arraytopic,
+                              SelectObjectClient.pcl_ref,
+                              SelectObjectClient.object_filter,
+                              SelectObjectClient.image_msg)
 
 
