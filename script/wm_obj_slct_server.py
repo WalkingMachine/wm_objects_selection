@@ -3,6 +3,8 @@
 import rospy
 import os
 import cv2
+import random
+import numpy
 import object_recognition_core
 import geometry_msgs.msg
 import shape_msgs.msg
@@ -21,13 +23,21 @@ def handle_slt_obj(req):
     rospy.logdebug("Request for ", req.filter, "registered")
     rospy.logout('Retrieving object information')
 
+    # Prepare directory to save images of recognition
+    path = os.path.expanduser('~/roi_images_objects')
+    if (os.path.exists(path)):
+        os.system('rm -r ' + path)
+    os.system('mkdir roi_images_objects')
+
     # Construit la liste des info d'objets détectés
     for i in req.objectarray.objects:
         objects_info_list.append(client_info(i.type))
-        bounding_box(req.image,
+        image = req.image
+        bounding_box(image,
                      i.pose.pose.pose.position,
                      objects_info_list[-1].name,
-                     objects_info_list[-1].ground_truth_mesh)
+                     objects_info_list[-1].ground_truth_mesh,
+                     path)
 
     # Parcours la liste d'informations pour trouver l'objet demandé
     for i in objects_info_list:
@@ -66,14 +76,26 @@ def client_info(type):
         rospy.logerr("Service get_object_info failed: %s" + str(e))
 
 
-def bounding_box(image, position, name, mesh):
+def bounding_box(image, position, name, mesh, path):
     bridge = CvBridge()
     x_val = []
+    y_val = []
     z_val = []
-    try:
-        cv_image = bridge.imgmsg_to_cv2(image, "passthrough")
-    except CvBridgeError as e:
-        print(e)
+
+    if os.path.exists(path+'/scene.png'):
+        cv_image = cv2.imread(path+'/scene.png')
+        cv_image_sep = bridge.imgmsg_to_cv2(image, "passthrough")
+        b, g, r = cv2.split(cv_image_sep)  # get b,g,r
+        cv_image_sep = cv2.merge([r, g, b])  # switch to rgb
+    else:
+        try:
+            cv_image = bridge.imgmsg_to_cv2(image, "passthrough")
+            cv_image_sep = cv_image
+            b, g, r = cv2.split(cv_image)  # get b,g,r
+            cv_image = cv2.merge([r, g, b])  # switch to rgb
+        except CvBridgeError as e:
+            print(e)
+
     print name
 
     f = 0.00966
@@ -97,34 +119,40 @@ def bounding_box(image, position, name, mesh):
     # Extract width and length of object in millimeters
     for i in mesh.vertices:
         x_val.append(i.x)
+        y_val.append(i.y)
         z_val.append(i.z)
     x_max = max(x_val) * 1000
-    z_max = max(z_val) * 1000
+    z_max = max([max(z_val), max(y_val), max(x_val)]) * 1000
+    print z_max
 
     # Transfer object size to pixel frame
-    size_v = int(x_max / z_r * 2)
-    size_u = int(z_max / z_r * 2)
+    size_v = int(z_max / z_r * 1.5)
+    size_u = int(z_max / z_r * 1.5)
 
-    # Draw bounding box
-    cv2.rectangle(cv_image, (x_p-size_u/2, y_p-size_v/2), (x_p+size_u/2, y_p+size_v/2), (255, 0, 0), 2)
-    cv2.putText(cv_image, name, (x_p-size_u/2, y_p-size_v/2), 0, 1, 0xFF, 2)
+    # Randomize color of rectangle
+    component = lambda: random.randint(0, 255)
+    color = (component(), component(), component())
+
+    # Draw bounding box cv_image
+    cv2.rectangle(cv_image, (x_p-size_u/2, y_p-size_v/2), (x_p+size_u/2, y_p+size_v/2), color, 2)
+    cv2.putText(cv_image, name, (x_p-size_u/2, y_p-size_v/2), 0, 1, color, 2)
+
+    # Draw bounding box cv_image_sep
+    cv2.rectangle(cv_image_sep, (x_p - size_u / 2, y_p - size_v / 2), (x_p + size_u / 2, y_p + size_v / 2), color, 2)
+    cv2.putText(cv_image_sep, name, (x_p - size_u / 2, y_p - size_v / 2), 0, 1, color, 2)
 
     # Crops individual object
-    crop_img = cv_image[y_p - size_v / 2 - 20:y_p + size_v / 2, x_p - size_u / 2:x_p + size_u / 2]
+    crop_img = cv_image_sep[y_p - size_v / 2 - 20:y_p + size_v / 2, x_p - size_u / 2:x_p + size_u / 2]
 
-    # Resize object
+    # Resize object to 640 pixel wide
     r = 640.0 / crop_img.shape[1]
     dim = (640, int(crop_img.shape[0] * r))
 
     # perform the actual resizing of the image and show it
     crop_img_resized = cv2.resize(crop_img, dim, interpolation=cv2.INTER_AREA)
 
-    # Saves different images to directory
-    path = os.path.expanduser('~/roi_images_objects')
-    if(os.path.exists(path)):
-        os.system('rm -r ' + path)
-    os.system('mkdir roi_images_objects')
-    os.chdir(os.path.expanduser('~/roi_images_objects/'))
+    # Adjust saving path and saves images
+    os.chdir(os.path.expanduser(path))
     cv2.imwrite(name + '.png', crop_img_resized)
     cv2.imwrite('scene.png', cv_image)
     os.chdir(os.path.expanduser('~/'))
