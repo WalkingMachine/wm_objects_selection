@@ -14,9 +14,11 @@ from object_recognition_msgs.msg import *
 from wm_object_selection.srv import *
 from object_recognition_ros import *
 
-### This class initialize the client to subscrible and publish to the right topics
-### It waits for all right messages before being ready to be called
-class SelectObjectClient():
+# This class initialize the client to subscrible and publish to the right topics
+# It waits for all right messages before being ready to be called
+
+
+class SelectObjectClient:
     def __init__(self):
         # Initialize node
         rospy.init_node('fetch_objects_array_and_name')
@@ -61,6 +63,7 @@ class SelectObjectClient():
                                   queue_size=100)
         self.PubObjectPose = rospy.Publisher("/WMObjectProcessor/selected_object_pose", PoseWithCovarianceStamped,
                                              queue_size =100)
+
     # Method to call the server once all required information is received
     def client(self, array, pcl_ref, obj_filter, image):
         rospy.logout("Requesting position of " + obj_filter)
@@ -77,10 +80,6 @@ class SelectObjectClient():
                 rospy.logout('Service did not find the requested object')
             else:
                 rospy.logerr('Service call failed: ' + str(e))
-
-
-
-
 
 
 if __name__ == "__main__":
