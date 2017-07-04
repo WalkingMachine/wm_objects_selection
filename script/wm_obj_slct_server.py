@@ -44,7 +44,8 @@ def handle_slt_obj(req):
                            + '\n\rat position\r\n'
                            + str(object_pos))
             rospy.logout("Service select_object_server waiting")
-
+            grap_workspace = set_grap_workspace(object_pos.pose.pose.position, i.ground_truth_mesh)
+            print grap_workspace
             # Build response
             resp = RecognizeObjectResponse()
             resp.seg_image = image_msg
@@ -176,6 +177,53 @@ def bounding_box(image, position, name, mesh, path):
     image_message = bridge.cv2_to_imgmsg(cv_image, encoding="passthrough")
     return image_message
 
+
+def set_grap_workspace(position, mesh):
+    pub_pcl = rospy.Publisher("/WMObjectProcessor/workspace", Marker,
+                              queue_size=100)
+
+    x_val = []
+    y_val = []
+    z_val = []
+
+    # Extract 3d position of object
+    z_r = position.z
+    y_r = position.y
+    x_r = position.x
+
+    # Extract width and length of object in millimeters
+    for i in mesh.vertices:
+        x_val.append(i.x)
+        y_val.append(i.y)
+        z_val.append(i.z)
+    size_max = max([max(z_val), max(y_val), max(x_val)])*2
+
+    # Create workspace from position and size of object
+    w_min_x = x_r - size_max / 2
+    w_max_x = x_r + size_max / 2
+    w_min_y = y_r - size_max / 2
+    w_max_y = y_r + size_max / 2
+    w_min_z = z_r - size_max / 2
+    w_max_z = z_r + size_max / 2
+
+    # Create marker for representation
+    marker = Marker()
+    marker.header.frame_id = "/camera_rgb_optical_frame"
+    marker.header.stamp = rospy.get_time()
+    marker.type = marker.CUBE
+    marker.action = marker.ADD
+    marker.scale.x = size_max
+    marker.scale.y = size_max
+    marker.scale.z = size_max
+    marker.color.a = 0.7
+    marker.pose.orientation.w = 1.0
+    marker.pose.position.x = x_r
+    marker.pose.position.y = y_r
+    marker.pose.position.z = z_r
+
+    pub_pcl.publish(marker)
+    grab_workspace = [w_min_x, w_max_x, w_min_y, w_max_y, w_min_z, w_max_z]
+    return grab_workspace
 
 if __name__ == "__main__":
     slct_obj_srv()
