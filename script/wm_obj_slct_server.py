@@ -44,8 +44,9 @@ def handle_slt_obj(req):
                            + '\n\rat position\r\n'
                            + str(object_pos))
             rospy.logout("Service select_object_server waiting")
-            grap_workspace = set_grap_workspace(object_pos.pose.pose.position, i.ground_truth_mesh)
-            print grap_workspace
+            grab_workspace = set_grap_workspace(object_pos.pose.pose.position, i.ground_truth_mesh)
+            os.system('roslaunch agile_grasp agile_grasp_dev.launch _workspace:='+grab_workspace)
+
             # Build response
             resp = RecognizeObjectResponse()
             resp.seg_image = image_msg
@@ -196,33 +197,33 @@ def set_grap_workspace(position, mesh):
         x_val.append(i.x)
         y_val.append(i.y)
         z_val.append(i.z)
-    size_max = max([max(z_val), max(y_val), max(x_val)])*2
+    size_max = max([max(z_val), max(y_val), max(x_val)])*3
 
     # Create workspace from position and size of object
-    w_min_x = x_r - size_max / 2
-    w_max_x = x_r + size_max / 2
-    w_min_y = y_r - size_max / 2
-    w_max_y = y_r + size_max / 2
-    w_min_z = z_r - size_max / 2
-    w_max_z = z_r + size_max / 2
+    w_min_x = str(x_r - size_max / 2)
+    w_max_x = str(x_r + size_max / 2)
+    w_min_y = str(y_r - size_max / 2)
+    w_max_y = str(y_r + size_max / 2)
+    w_min_z = str(z_r - size_max / 2)
+    w_max_z = str(z_r + size_max / 2)
 
     # Create marker for representation
     marker = Marker()
     marker.header.frame_id = "/camera_rgb_optical_frame"
-    marker.header.stamp = rospy.get_time()
+    #marker.header.stamp = rospy.get_time()
     marker.type = marker.CUBE
     marker.action = marker.ADD
     marker.scale.x = size_max
     marker.scale.y = size_max
     marker.scale.z = size_max
-    marker.color.a = 0.7
+    marker.color.a = 1
     marker.pose.orientation.w = 1.0
     marker.pose.position.x = x_r
     marker.pose.position.y = y_r
     marker.pose.position.z = z_r
 
     pub_pcl.publish(marker)
-    grab_workspace = [w_min_x, w_max_x, w_min_y, w_max_y, w_min_z, w_max_z]
+    grab_workspace = '[' + w_min_x + ',' + w_max_x+',' + w_min_y + ',' + w_max_y + ',' + w_min_z + ',' + w_max_z + ']'
     return grab_workspace
 
 if __name__ == "__main__":
