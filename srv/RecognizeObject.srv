@@ -1,7 +1,7 @@
 object_recognition_msgs/RecognizedObjectArray objectarray
-sensor_msgs/PointCloud2 pcl_ref
 string filter
 sensor_msgs/Image image
 ---
 geometry_msgs/PoseWithCovarianceStamped selected_object_pose
 sensor_msgs/Image seg_image
+float64[] workspace
