@@ -1,18 +1,10 @@
 #!/usr/bin/env python
 import rospy
-import os
-import sys
-import object_recognition_msgs
-import object_recognition_core
-import object_recognition_ros
-from cv_bridge import *
-import cv2
 from std_msgs.msg import String
 from sensor_msgs.msg import PointCloud2, Image
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from object_recognition_msgs.msg import *
-from wm_object_selection.srv import *
-from object_recognition_ros import *
+from wm_objects_selector.srv import *
 
 # This class initialize the client to subscrible and publish to the right topics
 # It waits for all right messages before being ready to be called
@@ -62,7 +54,7 @@ class SelectObjectClient:
         self.pub_pcl = rospy.Publisher("/WMObjectProcessor/DetectedObjects", PointCloud2,
                                   queue_size=100)
         self.PubObjectPose = rospy.Publisher("/WMObjectProcessor/selected_object_pose", PoseWithCovarianceStamped,
-                                             queue_size =100)
+                                             queue_size=100)
 
     # Method to call the server once all required information is received
     def client(self, array, pcl_ref, obj_filter, image):
@@ -71,7 +63,7 @@ class SelectObjectClient:
         try:
             self.inputs_srv = rospy.ServiceProxy('slct_obj', RecognizeObject)
             self.slct_obj = self.inputs_srv(array, pcl_ref, obj_filter, image)
-            rospy.logout('Service found the requested object at\n\r ' + str(self.slct_obj.selected_object_pose.pose.pose))
+            rospy.logout('Service found the requested object at\n\r ' + str(self.slct_obj.selected_object_pose))
             self.PubObjectPose.publish(self.slct_obj.selected_object_pose)
             self.pub_pcl.publish(self.pcl_ref)
 

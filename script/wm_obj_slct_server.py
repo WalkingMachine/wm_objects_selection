@@ -6,7 +6,7 @@ import cv2
 import random
 from object_recognition_msgs.srv import *
 from cv_bridge import CvBridge, CvBridgeError
-from wm_object_selection.srv import *
+from wm_objects_selector.srv import *
 from visualization_msgs.msg import Marker
 
 
@@ -21,8 +21,7 @@ def handle_slt_obj(req):
     if os.path.exists(path):
         os.system('rm -r ' + path)
     os.mkdir(path)
-
-    # Build list of objects' informations
+        # Build list of objects' informations
     for i in req.objectarray.objects:
         objects_info_list.append(client_info(i.type))
         image = req.image
@@ -32,6 +31,10 @@ def handle_slt_obj(req):
                                   objects_info_list[-1].ground_truth_mesh,
                                   path)
 
+    # Change req.filter to random object if filter is 'random'
+    if req.filter == 'random':
+        names = [item.name for item in objects_info_list]
+        req.filter = random.choice(names)
     # Find the requested object in the list
     for i in objects_info_list:
         if i.name == req.filter:
@@ -44,11 +47,12 @@ def handle_slt_obj(req):
                            + '\n\rat position\r\n'
                            + str(object_pos))
             rospy.logout("Service select_object_server waiting")
-
+            grab_workspace = set_grap_workspace(object_pos.pose.pose.position, i.ground_truth_mesh)
             # Build response
             resp = RecognizeObjectResponse()
             resp.seg_image = image_msg
             resp.selected_object_pose = object_pos
+            resp.workspace = grab_workspace
             return resp
         else:
             i_p = i_p + 1
@@ -176,6 +180,53 @@ def bounding_box(image, position, name, mesh, path):
     image_message = bridge.cv2_to_imgmsg(cv_image, encoding="passthrough")
     return image_message
 
+
+def set_grap_workspace(position, mesh):
+    pub_pcl = rospy.Publisher("/WMObjectProcessor/workspace", Marker,
+                              queue_size=100)
+
+    x_val = []
+    y_val = []
+    z_val = []
+
+    # Extract 3d position of object
+    z_r = position.z
+    y_r = position.y
+    x_r = position.x
+
+    # Extract width and length of object in millimeters
+    for i in mesh.vertices:
+        x_val.append(i.x)
+        y_val.append(i.y)
+        z_val.append(i.z)
+    size_max = max([max(z_val), max(y_val), max(x_val)])*2
+
+    # Create workspace from position and size of object
+    w_min_x = x_r - size_max / 2
+    w_max_x = x_r + size_max / 2
+    w_min_y = y_r - size_max / 2
+    w_max_y = y_r + size_max / 2
+    w_min_z = z_r - size_max / 2
+    w_max_z = z_r + size_max / 2
+
+    # Create marker for representation
+    marker = Marker()
+    marker.header.frame_id = "/camera_rgb_optical_frame"
+    #marker.header.stamp = rospy.get_time()
+    marker.type = marker.CUBE
+    marker.action = marker.ADD
+    marker.scale.x = size_max
+    marker.scale.y = size_max
+    marker.scale.z = size_max
+    marker.color.a = 1
+    marker.pose.orientation.w = 1.0
+    marker.pose.position.x = x_r
+    marker.pose.position.y = y_r
+    marker.pose.position.z = z_r
+
+    pub_pcl.publish(marker)
+    grab_workspace = [w_min_x, w_max_x, w_min_y, w_max_y, w_min_z, w_max_z]
+    return grab_workspace
 
 if __name__ == "__main__":
     slct_obj_srv()
