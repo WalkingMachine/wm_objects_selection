@@ -35,7 +35,7 @@ class SelectObjectClient:
 
         # Retrieve image to add bounding boxes to it
         rospy.logout("Wait for image")
-        self.image_msg = rospy.wait_for_message("/camera/rgb/image_rect_color", Image, 30) # for kinect2 : '/kinect2/qhd/image_color_rect' for xtion : '/camera/rgb/image_rect_color'
+        self.image_msg = rospy.wait_for_message("/base_xtion/rgb/image_rect_color", Image, 30) # for kinect2 : '/kinect2/qhd/image_color_rect' for xtion : '/camera/rgb/image_rect_color'
         try:
             rospy.logout("Image received")
         except rospy.ROSException, e:
