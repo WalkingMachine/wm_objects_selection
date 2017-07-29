@@ -4,4 +4,4 @@ sensor_msgs/Image image
 ---
 geometry_msgs/PoseWithCovarianceStamped selected_object_pose
 sensor_msgs/Image seg_image
-float64[] workspace
+string workspace
